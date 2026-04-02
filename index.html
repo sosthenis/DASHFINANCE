@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Fusão FIIs</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      body, html { margin: 0; padding: 0; min-height: 100vh; background: #0D0D0D; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
+      const { 
+        BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, 
+        PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, 
+        Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area 
+      } = window.Recharts;
+const GOLD = "#C9A84C";
+const GOLD_LIGHT = "#E8D48B";
+const GOLD_DARK = "#8B6F1E";
+const BG_DARK = "#0D0D0D";
+const BG_CARD = "#1A1A1A";
+const BG_CARD2 = "#222222";
+const WHITE = "#F5F5F0";
+const MUTED = "#999";
+const RED = "#E74C3C";
+const GREEN = "#2ECC71";
+const BLUE = "#3498DB";
+
+const fontes = [
+  { nome: "BrFiis", url: "https://brfiis.com.br/artigos/pcip11-como-esta-o-fundo-depois-da-mudanca-de-nome", desc: "Análise PCIP11 pós-fusão" },
+  { nome: "BrFiis", url: "https://brfiis.com.br/artigos/patria-compra-12-fundos-imobiliarios-da-rbr-e-se-torna-a-maior-gestora-de-fiis-do-brasil", desc: "Pátria compra RBR" },
+  { nome: "XP Investimentos", url: "https://conteudos.xpi.com.br/fundos-imobiliarios/carteiras/carteira-fundamentalista-de-fundos-imobiliarios-janeiro-de-2026/", desc: "Carteira Fundamentalista jan/2026" },
+  { nome: "Money Times", url: "https://www.moneytimes.com.br/patria-adquire-rbr-gestao-e-incorpora-12-fundos-imobiliarios-fiis-ao-portfolio-veja-os-detalhes-igdl/", desc: "Pátria adquire RBR" },
+  { nome: "NeoFeed", url: "https://neofeed.com.br/negocios/patria-adquire-fundos-listados-da-rbr-incorpora-r-8-bilhoes-e-chega-a-r-38-bilhoes-em-real-estate-no-brasil/", desc: "Pátria R$ 38 bi" },
+  { nome: "InfoMoney", url: "https://www.infomoney.com.br/onde-investir/patria-compra-divisao-de-fiis-da-rbr-e-alcanca-r-38-bi-em-ativos-imobiliarios/", desc: "Abbud: organizar a casa em 2026" },
+  { nome: "Suno", url: "https://www.suno.com.br/noticias/patria-compra-rbr-asset-reforca-fiis/", desc: "Patria reforça FIIs" },
+  { nome: "FundsExplorer", url: "https://www.fundsexplorer.com.br/noticias/hglg11-votacao-incorporacao-lvbi11-patl11", desc: "HGLG11 megafusão" },
+  { nome: "InvesTalk BB", url: "https://investalk.bb.com.br/fiis/VCJR11", desc: "Ficha VCJR11" },
+  { nome: "Clube FII", url: "https://www.clubefii.com.br/fundo_comunicados_embed?id=1127035", desc: "Relatório Gerencial RBRR11" },
+  { nome: "Fiis.com.br", url: "https://fiis.com.br/noticias/cvbi11-picp11-incorporacao-novo-nome/", desc: "CVBI11 vira PCIP11" },
+  { nome: "aRevista", url: "https://arevista.com.br/fundos-imobiliarios-fiis/rbrr11-entra-em-2026-com-rendimentos-irregulares-e-desafia-investidores-de-renda-mensal/", desc: "RBRR11 rendimentos 2026" },
+];
+
+const fiiBR = [
+  { ticker: "VCJR11", pl: 1.40, vpCota: 94.60, cotacao: 79.5, pvp: 0.84, dy12m: 14.1, taxa: 1.60, ipca: 100, cris: 65, adimpl: 100, tipo: "IPCA", gestor: "Pátria VBI" },
+  { ticker: "RBRR11", pl: 1.51, vpCota: 93.33, cotacao: 85.0, pvp: 0.91, dy12m: 12.1, taxa: 1.00, ipca: 61, cris: 54, adimpl: 100, tipo: "Misto", gestor: "Pátria (ex-RBR)" },
+  { ticker: "PCIP11", pl: 1.57, vpCota: 92.83, cotacao: 84.0, pvp: 0.89, dy12m: 14.7, taxa: 1.05, ipca: 87, cris: 122, adimpl: 93.6, tipo: "IPCA", gestor: "Pátria VBI" },
+  { ticker: "KNIP11", pl: 7.20, vpCota: 100.50, cotacao: 95.0, pvp: 0.95, dy12m: 12.8, taxa: 1.20, ipca: 95, cris: 90, adimpl: 99, tipo: "IPCA", gestor: "Kinea" },
+  { ticker: "KNCR11", pl: 6.80, vpCota: 102.0, cotacao: 103.0, pvp: 1.01, dy12m: 13.2, taxa: 1.06, ipca: 5, cris: 70, adimpl: 100, tipo: "CDI", gestor: "Kinea" },
+  { ticker: "MCCI11", pl: 1.90, vpCota: 96.0, cotacao: 88.0, pvp: 0.92, dy12m: 13.5, taxa: 0.95, ipca: 70, cris: 45, adimpl: 98, tipo: "Misto", gestor: "Mauá" },
+  { ticker: "CPTS11", pl: 3.40, vpCota: 85.0, cotacao: 79.0, pvp: 0.93, dy12m: 12.0, taxa: 1.05, ipca: 60, cris: 80, adimpl: 97, tipo: "Misto", gestor: "Capitânia" },
+  { ticker: "RECR11", pl: 2.10, vpCota: 88.0, cotacao: 80.0, pvp: 0.91, dy12m: 13.8, taxa: 1.00, ipca: 65, cris: 55, adimpl: 99, tipo: "Misto", gestor: "REC" },
+  { ticker: "HGCR11", pl: 2.50, vpCota: 101.0, cotacao: 98.0, pvp: 0.97, dy12m: 12.5, taxa: 1.10, ipca: 50, cris: 60, adimpl: 100, tipo: "Misto", gestor: "Pátria" },
+  { ticker: "VGIR11", pl: 1.43, vpCota: 9.79, cotacao: 9.80, pvp: 1.00, dy12m: 15.5, taxa: 0.80, ipca: 5, cris: 40, adimpl: 98, tipo: "CDI", gestor: "Valora" },
+];
+
+const reitUS = [
+  { ticker: "O", nome: "Realty Income", dy: 5.8, tipo: "Net Lease", mcap: 48, pvp: 1.2, setor: "Diversificado" },
+  { ticker: "AMT", nome: "American Tower", dy: 3.2, tipo: "Infrastructure", mcap: 95, pvp: 2.8, setor: "Torres" },
+  { ticker: "PLD", nome: "Prologis", dy: 3.5, tipo: "Industrial", mcap: 105, pvp: 2.1, setor: "Logística" },
+  { ticker: "SPG", nome: "Simon Property", dy: 5.1, tipo: "Retail", mcap: 52, pvp: 1.5, setor: "Shopping" },
+  { ticker: "VICI", nome: "VICI Properties", dy: 5.3, tipo: "Casino", mcap: 35, pvp: 1.3, setor: "Entretenimento" },
+  { ticker: "NNN", nome: "NNN REIT", dy: 5.5, tipo: "Net Lease", mcap: 8, pvp: 1.1, setor: "Varejo" },
+  { ticker: "STAG", nome: "STAG Industrial", dy: 4.0, tipo: "Industrial", mcap: 7, pvp: 1.3, setor: "Logística" },
+  { ticker: "ABR", nome: "Arbor Realty", dy: 12.5, tipo: "Mortgage", mcap: 2.5, pvp: 0.8, setor: "CRI/Mortgage" },
+  { ticker: "NLY", nome: "Annaly Capital", dy: 13.1, tipo: "Mortgage", mcap: 11, pvp: 0.9, setor: "CRI/Mortgage" },
+  { ticker: "AGNC", nome: "AGNC Investment", dy: 14.8, tipo: "Mortgage", mcap: 8, pvp: 0.8, setor: "CRI/Mortgage" },
+];
+
+const fusaoData = {
+  plCombinado: 4.48,
+  crisTotal: 241,
+  cotistasEst: 50000,
+  ipcaPonderado: 82,
+  taxaProjetada: 1.05,
+  pesoIFIX: 2.75,
+  liquidezDiaria: 10,
+};
+
+const dividendoHistory = [
+  { mes: "Out/25", vcjr: 1.00, rbrr: 0.80, pcip: 0.85 },
+  { mes: "Nov/25", vcjr: 0.77, rbrr: 0.75, pcip: 0.80 },
+  { mes: "Dez/25", vcjr: 0.77, rbrr: 0.80, pcip: 0.85 },
+  { mes: "Jan/26", vcjr: 0.88, rbrr: 0.80, pcip: 0.85 },
+  { mes: "Fev/26", vcjr: 0.88, rbrr: 0.70, pcip: 0.80 },
+  { mes: "Mar/26", vcjr: 1.30, rbrr: 0.70, pcip: 0.80 },
+];
+
+const radarVCJR = [
+  { metric: "Taxas", score: 5 }, { metric: "Liquidez", score: 5 },
+  { metric: "Diversif.", score: 4 }, { metric: "Rel.Troca", score: 4 },
+  { metric: "Transição", score: 3 }, { metric: "DY", score: 4 },
+];
+const radarRBRR = [
+  { metric: "Taxas", score: 4 }, { metric: "Liquidez", score: 4 },
+  { metric: "Diversif.", score: 4 }, { metric: "Rel.Troca", score: 3 },
+  { metric: "Transição", score: 2 }, { metric: "DY", score: 3 },
+];
+const radarPCIP = [
+  { metric: "Taxas", score: 3 }, { metric: "Liquidez", score: 4 },
+  { metric: "Diversif.", score: 3 }, { metric: "Rel.Troca", score: 3 },
+  { metric: "Transição", score: 4 }, { metric: "DY", score: 4 },
+];
+
+const indexadorPie = [
+  { name: "IPCA", vcjr: 100, rbrr: 61, pcip: 87, comb: 82 },
+  { name: "CDI", vcjr: 0, rbrr: 24, pcip: 10, comb: 12 },
+  { name: "IGP-M", vcjr: 0, rbrr: 15, pcip: 3, comb: 6 },
+];
+
+const PIE_COLORS = [GOLD, BLUE, "#8B6F1E"];
+
+function GoldLine() {
+  return <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, margin: "16px 0" }} />;
+}
+
+function Card({ children, style, glow }) {
+  return (
+    <div style={{
+      background: BG_CARD, borderRadius: 12, padding: 24,
+      border: `1px solid ${glow ? GOLD : "#333"}`,
+      boxShadow: glow ? `0 0 20px ${GOLD}33` : "0 4px 20px rgba(0,0,0,0.4)",
+      ...style,
+    }}>{children}</div>
+  );
+}
+
+function Badge({ text, color }) {
+  return (
+    <span style={{
+      background: `${color}22`, color, border: `1px solid ${color}55`,
+      borderRadius: 6, padding: "3px 10px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
+    }}>{text}</span>
+  );
+}
+
+function MetricBox({ label, value, sub, color }) {
+  return (
+    <div style={{ textAlign: "center", flex: 1, minWidth: 120 }}>
+      <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: color || GOLD, fontFamily: "'DM Mono', monospace" }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: MUTED }}>{sub}</div>}
+    </div>
+  );
+}
+
+function TabBar({ tabs, active, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 4, marginBottom: 24, flexWrap: "wrap", borderBottom: `1px solid #333`, paddingBottom: 4 }}>
+      {tabs.map(t => (
+        <button key={t.id} onClick={() => onChange(t.id)} style={{
+          background: active === t.id ? GOLD : "transparent",
+          color: active === t.id ? BG_DARK : MUTED,
+          border: "none", borderRadius: "8px 8px 0 0", padding: "10px 18px",
+          fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all .2s",
+          letterSpacing: 0.5,
+        }}>{t.label}</button>
+      ))}
+    </div>
+  );
+}
+
+function SectionTitle({ children, icon }) {
+  return (
+    <h2 style={{
+      color: WHITE, fontSize: 22, fontWeight: 800, margin: "32px 0 16px",
+      borderLeft: `4px solid ${GOLD}`, paddingLeft: 16,
+      fontFamily: "'Playfair Display', Georgia, serif",
+    }}>{icon && <span style={{ marginRight: 8 }}>{icon}</span>}{children}</h2>
+  );
+}
+
+function FIITable({ data, sort, setSort }) {
+  const sorted = [...data].sort((a, b) => {
+    if (!sort) return 0;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return (a[sort.key] - b[sort.key]) * dir;
+  });
+  const toggleSort = (key) => {
+    if (sort?.key === key) setSort({ key, dir: sort.dir === "asc" ? "desc" : "asc" });
+    else setSort({ key, dir: "desc" });
+  };
+  const hdr = (label, key) => (
+    <th onClick={() => toggleSort(key)} style={{
+      cursor: "pointer", padding: "10px 8px", textAlign: "right", color: GOLD,
+      fontSize: 11, textTransform: "uppercase", letterSpacing: 1, borderBottom: `2px solid ${GOLD}44`,
+      userSelect: "none", whiteSpace: "nowrap",
+    }}>
+      {label} {sort?.key === key ? (sort.dir === "asc" ? "▲" : "▼") : ""}
+    </th>
+  );
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr>
+            <th style={{ padding: "10px 8px", textAlign: "left", color: GOLD, fontSize: 11, textTransform: "uppercase", borderBottom: `2px solid ${GOLD}44` }}>Ticker</th>
+            {hdr("PL (R$bi)", "pl")}
+            {hdr("P/VP", "pvp")}
+            {hdr("DY 12m", "dy12m")}
+            {hdr("Taxa", "taxa")}
+            {hdr("IPCA %", "ipca")}
+            {hdr("CRIs", "cris")}
+            {hdr("Adimpl.", "adimpl")}
+            <th style={{ padding: "10px 8px", textAlign: "center", color: GOLD, fontSize: 11, borderBottom: `2px solid ${GOLD}44` }}>Tipo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((f, i) => {
+            const isFusao = ["VCJR11", "RBRR11", "PCIP11"].includes(f.ticker);
+            return (
+              <tr key={f.ticker} style={{
+                background: isFusao ? `${GOLD}11` : i % 2 ? BG_CARD2 : "transparent",
+                borderLeft: isFusao ? `3px solid ${GOLD}` : "3px solid transparent",
+              }}>
+                <td style={{ padding: "8px", fontWeight: 700, color: isFusao ? GOLD : WHITE }}>{f.ticker}</td>
+                <td style={{ padding: "8px", textAlign: "right", color: WHITE }}>{f.pl.toFixed(2)}</td>
+                <td style={{ padding: "8px", textAlign: "right", color: f.pvp < 0.90 ? GREEN : f.pvp > 1 ? RED : WHITE }}>{f.pvp.toFixed(2)}</td>
+                <td style={{ padding: "8px", textAlign: "right", color: f.dy12m > 14 ? GREEN : WHITE, fontWeight: f.dy12m > 14 ? 700 : 400 }}>{f.dy12m.toFixed(1)}%</td>
+                <td style={{ padding: "8px", textAlign: "right", color: f.taxa > 1.2 ? RED : WHITE }}>{f.taxa.toFixed(2)}%</td>
+                <td style={{ padding: "8px", textAlign: "right", color: WHITE }}>{f.ipca}%</td>
+                <td style={{ padding: "8px", textAlign: "right", color: WHITE }}>{f.cris}</td>
+                <td style={{ padding: "8px", textAlign: "right", color: f.adimpl === 100 ? GREEN : f.adimpl < 95 ? RED : WHITE }}>{f.adimpl}%</td>
+                <td style={{ padding: "8px", textAlign: "center" }}><Badge text={f.tipo} color={f.tipo === "IPCA" ? GOLD : f.tipo === "CDI" ? BLUE : MUTED} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Calculator() {
+  const [aporte, setAporte] = useState(10000);
+  const [dy, setDy] = useState(13);
+  const [anos, setAnos] = useState(10);
+  const [reinvest, setReinvest] = useState(true);
+
+  const data = [];
+  let patrimonio = aporte;
+  for (let i = 0; i <= anos; i++) {
+    const divAnual = patrimonio * (dy / 100);
+    data.push({ ano: i, patrimonio: Math.round(patrimonio), dividendos: Math.round(divAnual), mensal: Math.round(divAnual / 12) });
+    if (reinvest) patrimonio += divAnual;
+  }
+  const final = data[data.length - 1];
+
+  return (
+    <Card>
+      <h3 style={{ color: GOLD, fontSize: 16, fontWeight: 800, marginBottom: 16, fontFamily: "'Playfair Display', serif" }}>⚡ Calculadora de Renda Passiva</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 20 }}>
+        <div>
+          <label style={{ fontSize: 11, color: MUTED, display: "block", marginBottom: 4 }}>APORTE INICIAL (R$)</label>
+          <input type="number" value={aporte} onChange={e => setAporte(+e.target.value)} style={{
+            width: "100%", padding: "8px 12px", background: BG_DARK, border: `1px solid #444`,
+            borderRadius: 8, color: WHITE, fontSize: 16, fontWeight: 700, boxSizing: "border-box",
+          }} />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: MUTED, display: "block", marginBottom: 4 }}>DY ANUAL (%)</label>
+          <input type="range" min={5} max={20} step={0.5} value={dy} onChange={e => setDy(+e.target.value)} style={{ width: "100%", accentColor: GOLD }} />
+          <span style={{ color: GOLD, fontWeight: 700, fontSize: 18 }}>{dy}%</span>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: MUTED, display: "block", marginBottom: 4 }}>HORIZONTE (ANOS)</label>
+          <input type="range" min={1} max={30} value={anos} onChange={e => setAnos(+e.target.value)} style={{ width: "100%", accentColor: GOLD }} />
+          <span style={{ color: GOLD, fontWeight: 700, fontSize: 18 }}>{anos}</span>
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: MUTED, display: "block", marginBottom: 4 }}>REINVESTIR?</label>
+          <button onClick={() => setReinvest(!reinvest)} style={{
+            padding: "8px 20px", background: reinvest ? GOLD : "transparent",
+            color: reinvest ? BG_DARK : MUTED, border: `1px solid ${GOLD}`,
+            borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 14,
+          }}>{reinvest ? "SIM ✓" : "NÃO"}</button>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
+        <MetricBox label="Patrimônio Final" value={`R$ ${(final.patrimonio/1000).toFixed(1)}k`} color={GREEN} />
+        <MetricBox label="Renda Mensal Final" value={`R$ ${final.mensal}`} color={GOLD} />
+        <MetricBox label="Total Dividendos" value={`R$ ${(data.reduce((s,d)=>s+d.dividendos,0)/1000).toFixed(1)}k`} color={GOLD_LIGHT} />
+      </div>
+
+      <ResponsiveContainer width="100%" height={220}>
+        <AreaChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+          <XAxis dataKey="ano" stroke={MUTED} tick={{ fontSize: 11 }} label={{ value: "Anos", position: "insideBottom", offset: -4, fill: MUTED, fontSize: 11 }} />
+          <YAxis stroke={MUTED} tick={{ fontSize: 11 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+          <Tooltip contentStyle={{ background: BG_CARD, border: `1px solid ${GOLD}44`, borderRadius: 8, color: WHITE, fontSize: 12 }}
+            formatter={(v) => [`R$ ${v.toLocaleString("pt-BR")}`, ""]} />
+          <Area type="monotone" dataKey="patrimonio" stroke={GOLD} fill={`${GOLD}33`} strokeWidth={2} name="Patrimônio" />
+          <Area type="monotone" dataKey="dividendos" stroke={GREEN} fill={`${GREEN}22`} strokeWidth={2} name="Div./Ano" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+}
+
+function Dashboard() {
+  const [tab, setTab] = useState("report");
+  const [sort, setSort] = useState({ key: "dy12m", dir: "desc" });
+  const [sortReit, setSortReit] = useState({ key: "dy", dir: "desc" });
+
+  const tabs = [
+    { id: "report", label: "📊 Relatório da Fusão" },
+    { id: "fii", label: "🇧🇷 Comparador FIIs" },
+    { id: "reit", label: "🇺🇸 REITs Equivalentes" },
+    { id: "calc", label: "⚡ Calculadora" },
+    { id: "fontes", label: "📚 Fontes" },
+  ];
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: BG_DARK, color: WHITE,
+      fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+      {/* HEADER */}
+      <div style={{
+        background: `linear-gradient(135deg, ${BG_DARK} 0%, #1a1508 50%, ${BG_DARK} 100%)`,
+        borderBottom: `2px solid ${GOLD}33`, padding: "28px 24px 20px",
+      }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 20, fontWeight: 900, color: BG_DARK,
+            }}>F</div>
+            <div>
+              <h1 style={{
+                fontSize: 24, fontWeight: 900, color: WHITE, margin: 0, lineHeight: 1.1,
+                fontFamily: "'Playfair Display', Georgia, serif",
+              }}>FUSÃO <span style={{ color: GOLD }}>VCJR11</span> + <span style={{ color: GOLD }}>RBRR11</span> + <span style={{ color: GOLD }}>PCIP11</span></h1>
+              <p style={{ fontSize: 12, color: MUTED, margin: 0 }}>Pátria Real Estate — Análise de Consolidação de FIIs de Crédito Imobiliário</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <Badge text="ESPECULATIVO" color={RED} />
+            <Badge text="ABR/2026" color={GOLD} />
+            <Badge text="NÃO É RECOMENDAÇÃO" color={MUTED} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 16px 40px" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 10, background: BG_DARK, paddingTop: 12 }}>
+          <TabBar tabs={tabs} active={tab} onChange={setTab} />
+        </div>
+
+        {/* ===== REPORT TAB ===== */}
+        {tab === "report" && (
+          <div>
+            {/* KPI STRIP */}
+            <Card style={{ marginBottom: 20 }} glow>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-around" }}>
+                <MetricBox label="PL Combinado" value={`R$ ${fusaoData.plCombinado}bi`} />
+                <MetricBox label="CRIs Totais" value={fusaoData.crisTotal} />
+                <MetricBox label="IPCA Ponderado" value={`${fusaoData.ipcaPonderado}%`} />
+                <MetricBox label="Taxa Projetada" value={`${fusaoData.taxaProjetada}%`} color={GREEN} />
+                <MetricBox label="Peso IFIX" value={`${fusaoData.pesoIFIX}%`} />
+                <MetricBox label="Liquidez/Dia" value={`R$${fusaoData.liquidezDiaria}M`} />
+              </div>
+            </Card>
+
+            <SectionTitle icon="📋">1. Sumário Executivo</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <p style={{ color: WHITE, lineHeight: 1.7, fontSize: 14 }}>
+                A potencial fusão criaria o <strong style={{ color: GOLD }}>maior FII de crédito imobiliário do Brasil</strong>, com PL estimado em R$ 4,5 bilhões,
+                superando o KNIP11 (Kinea). A fusão <strong>não foi formalmente anunciada</strong>, mas converge com: (i) declarações públicas do Pátria sobre
+                compatibilizar carteiras PCIP11/VCJR11; (ii) RBRR11 já sob gestão Pátria desde jan/2026; (iii) Abbud declarou que 2026 é o ano de "organizar a casa e consolidar fundos".
+              </p>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
+                <div style={{ flex: 1, minWidth: 200, padding: 12, background: `${GREEN}15`, borderRadius: 8, border: `1px solid ${GREEN}33` }}>
+                  <div style={{ fontSize: 11, color: GREEN, fontWeight: 700, marginBottom: 4 }}>VCJR11 → FAVORÁVEL</div>
+                  <div style={{ fontSize: 12, color: WHITE }}>Maior beneficiário: economia de 0,55% em taxa = ~R$ 0,52/cota/ano extra</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 200, padding: 12, background: `${GOLD}15`, borderRadius: 8, border: `1px solid ${GOLD}33` }}>
+                  <div style={{ fontSize: 11, color: GOLD, fontWeight: 700, marginBottom: 4 }}>RBRR11 → NEUTRO+</div>
+                  <div style={{ fontSize: 12, color: WHITE }}>Elimina taxa performance, mas perde equipe RBR e tem 39% fora IPCA</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 200, padding: 12, background: `${BLUE}15`, borderRadius: 8, border: `1px solid ${BLUE}33` }}>
+                  <div style={{ fontSize: 11, color: BLUE, fontWeight: 700, marginBottom: 4 }}>PCIP11 → FAVORÁVEL</div>
+                  <div style={{ fontSize: 12, color: WHITE }}>Diluição de 6,4% ativos problemáticos para ~2,2% + liquidez</div>
+                </div>
+              </div>
+            </Card>
+
+            <SectionTitle icon="📈">2. Histórico de Dividendos</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={dividendoHistory} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="mes" stroke={MUTED} tick={{ fontSize: 11 }} />
+                  <YAxis stroke={MUTED} tick={{ fontSize: 11 }} domain={[0, 1.5]} />
+                  <Tooltip contentStyle={{ background: BG_CARD, border: `1px solid ${GOLD}44`, borderRadius: 8, color: WHITE, fontSize: 12 }}
+                    formatter={(v) => [`R$ ${v.toFixed(2)}`, ""]} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="vcjr" name="VCJR11" fill={GOLD} radius={[4,4,0,0]} />
+                  <Bar dataKey="rbrr" name="RBRR11" fill={BLUE} radius={[4,4,0,0]} />
+                  <Bar dataKey="pcip" name="PCIP11" fill="#8B6F1E" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <p style={{ fontSize: 11, color: MUTED, marginTop: 8 }}>Nota: RBRR11 apresentou queda em fev-mar/2026 (IPCA 0,18% em nov/25 — defasagem de 2 meses). VCJR11 disparou em mar/26.</p>
+            </Card>
+
+            <SectionTitle icon="🎯">3. Scorecard Radar por FII</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+                {[
+                  { name: "VCJR11", data: radarVCJR, color: GOLD },
+                  { name: "RBRR11", data: radarRBRR, color: BLUE },
+                  { name: "PCIP11", data: radarPCIP, color: "#8B6F1E" },
+                ].map(r => (
+                  <div key={r.name} style={{ textAlign: "center" }}>
+                    <h4 style={{ color: r.color, marginBottom: 0, fontSize: 14 }}>{r.name}</h4>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <RadarChart data={r.data} outerRadius={70}>
+                        <PolarGrid stroke="#444" />
+                        <PolarAngleAxis dataKey="metric" tick={{ fill: MUTED, fontSize: 10 }} />
+                        <PolarRadiusAxis domain={[0, 5]} tick={false} axisLine={false} />
+                        <Radar dataKey="score" stroke={r.color} fill={r.color} fillOpacity={0.25} strokeWidth={2} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <SectionTitle icon="🥧">4. Composição de Indexadores</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
+                {["VCJR11", "RBRR11", "PCIP11", "Combinado"].map((label, idx) => {
+                  const key = ["vcjr","rbrr","pcip","comb"][idx];
+                  const pieData = indexadorPie.map(d => ({ name: d.name, value: d[key] })).filter(d => d.value > 0);
+                  return (
+                    <div key={label} style={{ textAlign: "center" }}>
+                      <h4 style={{ color: idx === 3 ? GOLD : WHITE, fontSize: 13, marginBottom: 0 }}>{label}</h4>
+                      <ResponsiveContainer width="100%" height={160}>
+                        <PieChart>
+                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} dataKey="value" label={({ name, value }) => `${name} ${value}%`}>
+                            {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip contentStyle={{ background: BG_CARD, border: `1px solid #444`, borderRadius: 6, fontSize: 11, color: WHITE }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <SectionTitle icon="⚠️">5. Matriz de Riscos</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      {["Risco", "Descrição", "Impacto", "Mitigação"].map(h => (
+                        <th key={h} style={{ padding: "10px 8px", textAlign: "left", color: GOLD, fontSize: 11, borderBottom: `2px solid ${GOLD}44`, textTransform: "uppercase" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["Perda equipe RBR", "Time de originação não migrou ao Pátria", "🔴 ALTO p/ RBRR", "Pátria tem 50+ profissionais RE"],
+                      ["Conflito de interesses", "Pátria define relação de troca e gere todos os lados", "🟡 MÉDIO", "CVM regulação + admin independentes"],
+                      ["Descasamento indexadores", "39% do RBRR fora IPCA — reciclar gera custo", "🟡 MÉDIO", "Reciclagem gradual, CDI paga bem"],
+                      ["Diluição qualidade", "PCIP11 tem 6,4% ativos problemáticos", "🟢 BAIXO", "Diluição: 6,4%→2,2% do PL combinado"],
+                      ["Event risk AGE", "Cotistas podem rejeitar — quórum baixo", "🟢 BAIXO", "Precedentes favoráveis"],
+                      ["Tributação conversão", "Ganho capital pode gerar IR 20%", "🟡 MÉDIO", "Incorporação patrimonial é padrão"],
+                    ].map((r, i) => (
+                      <tr key={i} style={{ background: i % 2 ? BG_CARD2 : "transparent" }}>
+                        <td style={{ padding: 8, fontWeight: 700, color: WHITE }}>{r[0]}</td>
+                        <td style={{ padding: 8, color: MUTED }}>{r[1]}</td>
+                        <td style={{ padding: 8, fontWeight: 700 }}>{r[2]}</td>
+                        <td style={{ padding: 8, color: MUTED }}>{r[3]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+
+            <SectionTitle icon="⚖️">6. Cenários de Taxas Pós-Fusão</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={[
+                  { cenario: "Atual VCJR", taxa: 1.60, fill: RED },
+                  { cenario: "Atual PCIP", taxa: 1.05, fill: MUTED },
+                  { cenario: "Atual RBRR", taxa: 1.00, fill: MUTED },
+                  { cenario: "Fusão Pessimista", taxa: 1.10, fill: "#8B6F1E" },
+                  { cenario: "Fusão Base", taxa: 1.05, fill: GOLD },
+                  { cenario: "Fusão Otimista", taxa: 0.95, fill: GREEN },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="cenario" stroke={MUTED} tick={{ fontSize: 10 }} />
+                  <YAxis stroke={MUTED} tick={{ fontSize: 11 }} domain={[0.5, 1.8]} tickFormatter={v => `${v}%`} />
+                  <Tooltip contentStyle={{ background: BG_CARD, border: `1px solid ${GOLD}44`, borderRadius: 8, color: WHITE, fontSize: 12 }}
+                    formatter={(v) => [`${v}% a.a.`, "Taxa"]} />
+                  <Bar dataKey="taxa" radius={[6,6,0,0]}>
+                    {[RED, MUTED, MUTED, "#8B6F1E", GOLD, GREEN].map((c, i) => <Cell key={i} fill={c} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <p style={{ fontSize: 12, color: WHITE, marginTop: 8 }}>
+                <strong style={{ color: GOLD }}>Delta VCJR11:</strong> de 1,60% → 1,05% (cenário base) = economia de 0,55% a.a. sobre R$ 1,4 bi ≈ <strong style={{ color: GREEN }}>R$ 7,7M/ano</strong> a mais para distribuição (~R$ 0,52/cota/ano).
+              </p>
+            </Card>
+
+            <SectionTitle icon="🐂">7. Bull Case vs. Bear Case</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ padding: 16, background: `${GREEN}10`, borderRadius: 8, border: `1px solid ${GREEN}33` }}>
+                  <h4 style={{ color: GREEN, margin: "0 0 8px", fontSize: 14 }}>🐂 BULL CASE</h4>
+                  <ul style={{ margin: 0, paddingLeft: 16, color: WHITE, fontSize: 12, lineHeight: 1.8 }}>
+                    <li>Tendência global: REITs grandes + líquidos</li>
+                    <li>KNIP11 prova que FII &gt;R$7bi atrai fluxo institucional e opera com P/VP ~1,0</li>
+                    <li>Poder de barganha na originação de CRI</li>
+                    <li>Custo administrativo unitário cai (3 auditorias→1)</li>
+                    <li>Peso IFIX ~2,75% atrai alocação passiva</li>
+                    <li>Economia de taxa gera ~R$0,52/cota/ano extra (VCJR)</li>
+                  </ul>
+                </div>
+                <div style={{ padding: 16, background: `${RED}10`, borderRadius: 8, border: `1px solid ${RED}33` }}>
+                  <h4 style={{ color: RED, margin: "0 0 8px", fontSize: 14 }}>🐻 BEAR CASE</h4>
+                  <ul style={{ margin: 0, paddingLeft: 16, color: WHITE, fontSize: 12, lineHeight: 1.8 }}>
+                    <li>Tamanho ≠ qualidade — "fundo Frankenstein" por M&A</li>
+                    <li>Equipe RBR não migrou — perde originação proprietária</li>
+                    <li>Carteiras com filosofias diferentes (VBI/RBR/Vectis)</li>
+                    <li>Concentração R$ 38bi sob 1 gestor = risco sistêmico</li>
+                    <li>Reciclar 39% CDI/IGP-M do RBRR gera custo de transição</li>
+                    <li>PCIP tem 6,4% ativos problemáticos absorvidos</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+
+            <SectionTitle icon="❓">8. Perguntas para a AGE</SectionTitle>
+            <Card>
+              <ol style={{ margin: 0, paddingLeft: 20, color: WHITE, fontSize: 13, lineHeight: 2 }}>
+                <li><strong style={{ color: GOLD }}>Relação de troca:</strong> VP/cota na data de corte é justo? Haverá laudo independente?</li>
+                <li><strong style={{ color: GOLD }}>Taxa combinada:</strong> será &lt;1,10% sem performance? Se não, qual o delta real?</li>
+                <li><strong style={{ color: GOLD }}>Reciclagem de indexadores:</strong> prazo e custo de converter 39% CDI/IGP-M do RBRR para IPCA?</li>
+                <li><strong style={{ color: GOLD }}>Tratamento tributário:</strong> incorporação patrimonial (sem IR) ou liquidação+recompra?</li>
+                <li><strong style={{ color: GOLD }}>Conflitos:</strong> CRI intra-grupo (PCIP11 → outro fundo VBI) será mantido ou vendido?</li>
+                <li><strong style={{ color: GOLD }}>Administrador fiduciário:</strong> qual será mantido? BTG vs. BRL Trust vs. Intrag?</li>
+              </ol>
+            </Card>
+          </div>
+        )}
+
+        {/* ===== FII COMPARATOR ===== */}
+        {tab === "fii" && (
+          <div>
+            <SectionTitle icon="🇧🇷">Comparador de FIIs de Papel — Top Brasil</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>Clique nos cabeçalhos para ordenar. FIIs da fusão destacados em dourado.</p>
+              <FIITable data={fiiBR} sort={sort} setSort={setSort} />
+            </Card>
+
+            <SectionTitle icon="📊">DY vs. P/VP — Mapa de Oportunidades</SectionTitle>
+            <Card>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={fiiBR.sort((a,b) => b.dy12m - a.dy12m)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis type="number" stroke={MUTED} tick={{ fontSize: 11 }} domain={[0, 18]} tickFormatter={v => `${v}%`} />
+                  <YAxis type="category" dataKey="ticker" stroke={MUTED} tick={{ fontSize: 11 }} width={70} />
+                  <Tooltip contentStyle={{ background: BG_CARD, border: `1px solid ${GOLD}44`, borderRadius: 8, color: WHITE, fontSize: 12 }} />
+                  <Bar dataKey="dy12m" name="DY 12m (%)" radius={[0,6,6,0]}>
+                    {fiiBR.sort((a,b) => b.dy12m - a.dy12m).map((f) => (
+                      <Cell key={f.ticker} fill={["VCJR11","RBRR11","PCIP11"].includes(f.ticker) ? GOLD : "#555"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+        )}
+
+        {/* ===== REITs ===== */}
+        {tab === "reit" && (
+          <div>
+            <SectionTitle icon="🇺🇸">REITs Americanos Equivalentes</SectionTitle>
+            <Card style={{ marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>
+                Equivalentes de FIIs de CRI no mercado americano são os <strong style={{ color: GOLD }}>Mortgage REITs</strong> (ABR, NLY, AGNC).
+                Para diversificação setorial, os Equity REITs (O, PLD, SPG) oferecem exposição a imóveis físicos.
+              </p>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      {["Ticker", "Nome", "Tipo", "DY (%)", "Market Cap ($bi)", "P/VP", "Setor"].map(h => (
+                        <th key={h} style={{ padding: "10px 8px", textAlign: h === "Ticker" || h === "Nome" || h === "Setor" ? "left" : "right", color: GOLD, fontSize: 11, borderBottom: `2px solid ${GOLD}44`, textTransform: "uppercase" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reitUS.sort((a,b) => b.dy - a.dy).map((r, i) => {
+                      const isMort = r.tipo === "Mortgage";
+                      return (
+                        <tr key={r.ticker} style={{ background: isMort ? `${GOLD}11` : i % 2 ? BG_CARD2 : "transparent", borderLeft: isMort ? `3px solid ${GOLD}` : "3px solid transparent" }}>
+                          <td style={{ padding: 8, fontWeight: 700, color: isMort ? GOLD : WHITE }}>{r.ticker}</td>
+                          <td style={{ padding: 8, color: WHITE }}>{r.nome}</td>
+                          <td style={{ padding: 8 }}><Badge text={r.tipo} color={isMort ? GOLD : BLUE} /></td>
+                          <td style={{ padding: 8, textAlign: "right", color: r.dy > 10 ? GREEN : WHITE, fontWeight: r.dy > 10 ? 700 : 400 }}>{r.dy.toFixed(1)}%</td>
+                          <td style={{ padding: 8, textAlign: "right", color: WHITE }}>${r.mcap}</td>
+                          <td style={{ padding: 8, textAlign: "right", color: r.pvp < 1 ? GREEN : WHITE }}>{r.pvp.toFixed(1)}</td>
+                          <td style={{ padding: 8, color: MUTED }}>{r.setor}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+
+            <SectionTitle icon="📊">DY Comparativo: FIIs Fusão vs. Mortgage REITs</SectionTitle>
+            <Card>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={[
+                  { nome: "VCJR11", dy: 14.1, tipo: "FII" },
+                  { nome: "PCIP11", dy: 14.7, tipo: "FII" },
+                  { nome: "RBRR11", dy: 12.1, tipo: "FII" },
+                  { nome: "AGNC", dy: 14.8, tipo: "mREIT" },
+                  { nome: "NLY", dy: 13.1, tipo: "mREIT" },
+                  { nome: "ABR", dy: 12.5, tipo: "mREIT" },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="nome" stroke={MUTED} tick={{ fontSize: 12 }} />
+                  <YAxis stroke={MUTED} tick={{ fontSize: 11 }} domain={[0, 18]} tickFormatter={v => `${v}%`} />
+                  <Tooltip contentStyle={{ background: BG_CARD, border: `1px solid ${GOLD}44`, borderRadius: 8, color: WHITE, fontSize: 12 }} />
+                  <Bar dataKey="dy" name="Dividend Yield %" radius={[6,6,0,0]}>
+                    {[GOLD, "#8B6F1E", BLUE, "#E74C3C", "#C0392B", "#A93226"].map((c, i) => <Cell key={i} fill={c} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <p style={{ fontSize: 12, color: MUTED, marginTop: 8 }}>FIIs de CRI brasileiros oferecem yields comparáveis ou superiores aos Mortgage REITs americanos, com isenção de IR para PF (vs. tributação normal nos EUA). O risco cambial e de crédito soberano é o trade-off.</p>
+            </Card>
+          </div>
+        )}
+
+        {/* ===== CALCULATOR ===== */}
+        {tab === "calc" && (
+          <div>
+            <SectionTitle icon="⚡">Calculadora Financeira</SectionTitle>
+            <Calculator />
+            <div style={{ marginTop: 16 }}>
+              <Card>
+                <h3 style={{ color: GOLD, fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Simulação Rápida: Quanto rende o fundo combinado?</h3>
+                <p style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>DY médio ponderado estimado: ~13,5% a.a. (cenário base com taxa 1,05%)</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+                  {[
+                    { aporte: "R$ 10.000", mensal: "R$ 112", anual: "R$ 1.350" },
+                    { aporte: "R$ 50.000", mensal: "R$ 562", anual: "R$ 6.750" },
+                    { aporte: "R$ 100.000", mensal: "R$ 1.125", anual: "R$ 13.500" },
+                    { aporte: "R$ 500.000", mensal: "R$ 5.625", anual: "R$ 67.500" },
+                  ].map(s => (
+                    <div key={s.aporte} style={{ padding: 12, background: BG_DARK, borderRadius: 8, border: `1px solid #333` }}>
+                      <div style={{ fontSize: 11, color: MUTED }}>Aporte</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>{s.aporte}</div>
+                      <div style={{ marginTop: 8, fontSize: 11, color: MUTED }}>Renda Mensal</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: GOLD }}>{s.mensal}</div>
+                      <div style={{ marginTop: 4, fontSize: 11, color: MUTED }}>Renda Anual</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: GREEN }}>{s.anual}</div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* ===== SOURCES ===== */}
+        {tab === "fontes" && (
+          <div>
+            <SectionTitle icon="📚">Fontes e Referências</SectionTitle>
+            <Card>
+              <div style={{ display: "grid", gap: 8 }}>
+                {fontes.map((f, i) => (
+                  <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+                    background: i % 2 ? BG_CARD2 : "transparent", borderRadius: 8,
+                    textDecoration: "none", transition: "all .2s", border: `1px solid transparent`,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = GOLD; e.currentTarget.style.background = `${GOLD}11`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.background = i % 2 ? BG_CARD2 : "transparent"; }}
+                  >
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: GOLD, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{f.nome}</div>
+                      <div style={{ fontSize: 11, color: MUTED }}>{f.desc}</div>
+                    </div>
+                    <span style={{ fontSize: 18, color: GOLD }}>→</span>
+                  </a>
+                ))}
+              </div>
+            </Card>
+            <div style={{ marginTop: 16, padding: 16, background: `${RED}11`, borderRadius: 8, border: `1px solid ${RED}33` }}>
+              <p style={{ fontSize: 12, color: RED, fontWeight: 700, margin: 0 }}>
+                DISCLAIMER: Análise especulativa baseada em informações públicas. A fusão VCJR11+RBRR11+PCIP11 NÃO foi formalmente anunciada. Não constitui recomendação de investimento. Dados de março-abril 2026.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* FOOTER */}
+        <div style={{ marginTop: 40, textAlign: "center", padding: "24px 0", borderTop: `1px solid #333` }}>
+          <p style={{ fontSize: 11, color: MUTED }}>Relatório gerado em Abril 2026 • Dados públicos compilados de B3, StatusInvest, FundsExplorer, BrFiis, relatórios gerenciais</p>
+          <p style={{ fontSize: 10, color: "#555" }}>Este material tem caráter exclusivamente informativo e analítico. Não constitui recomendação de compra ou venda de ativos.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<Dashboard />);
+    </script>
+</body>
+</html>
